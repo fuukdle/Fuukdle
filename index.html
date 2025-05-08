@@ -2,7 +2,7 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no" />
     <title>Fuukdle</title>
     <style>
         @font-face {
@@ -136,7 +136,32 @@
                 transform: translate(-50%, -50%) scale(1);
             }
 
+        @media (max-width: 600px) {
+            .tile {
+                width: 12vw;
+                height: 12vw;
+                font-size: 6vw;
+            }
 
+            .key {
+                min-width: 10vw;
+                padding: 2vw;
+                font-size: 4vw;
+            }
+
+                .key.special {
+                    min-width: 15vw;
+                }
+
+            h1 {
+                font-size: 2rem;
+                text-align: center;
+            }
+
+            body {
+                padding: 1rem;
+            }
+        }
     </style>
 
 </head>
