@@ -371,8 +371,14 @@
 
         function showLoss() {
             const popup = document.getElementById("resultPopup");
-            const lossMessage = "Better Luck Next Time!\n\nThe word was: FUUKA";
-            document.getElementById("resultText").textContent = lossMessage;
+            const resultText = document.getElementById("resultText");
+
+            resultText.textContent = "Better Luck Next Time!\n\nThe word was: FUUKA";
+
+            popup.innerHTML = `
+        <p id="resultText" style="white-space: pre-line;">${resultText.textContent}</p>
+        <button onclick="resetGame()">Try Again?</button>
+    `;
             popup.style.display = "block";
             setTimeout(() => popup.classList.add("show"), 10);
         }
@@ -380,15 +386,32 @@
 
 
         function copyResults() {
-            const text = document.getElementById("resultText").textContent;
-            navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
+            let resultEmoji = "";
+            for (let i = 0; i <= currentRow; i++) {
+                const row = gameEl.children[i];
+                for (let j = 0; j < 5; j++) {
+                    const tile = row.children[j];
+                    if (tile.classList.contains("correct")) resultEmoji += "🟩";
+                    else if (tile.classList.contains("present")) resultEmoji += "🟨";
+                    else resultEmoji += "⬛";
+                }
+                resultEmoji += "\n";
+            }
+
+            resultEmoji += "\nToday's Fuukdle! Try it here: https://fuukdle.github.io/Fuukdle/";
+
+            navigator.clipboard.writeText(resultEmoji).then(() => alert("Copied to clipboard!"));
         }
+
         function closePopup() {
             const popup = document.getElementById("resultPopup");
             popup.classList.remove("show");
             setTimeout(() => popup.style.display = "none", 300);
         }
 
+        function resetGame() {
+            location.reload(); // Simple full reset by reloading the page
+        }
 
 
     </script>
