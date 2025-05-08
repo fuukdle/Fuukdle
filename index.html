@@ -143,14 +143,23 @@
                 font-size: 6vw;
             }
 
+            .keyboard-row {
+                display: flex;
+                justify-content: space-between; /* Distribute keys evenly */
+                gap: 0.25rem; /* Slightly reduce gaps */
+                width: 100%;
+                flex-wrap: nowrap;
+            }
+
             .key {
-                min-width: 10vw;
-                padding: 2vw;
+                flex: 1 1 0;
+                min-width: 0;
+                padding: 1.5vw;
                 font-size: 4vw;
             }
 
                 .key.special {
-                    min-width: 15vw;
+                    flex: 1.2 1 0; /* Slightly wider than normal keys */
                 }
 
             h1 {
@@ -162,6 +171,7 @@
                 padding: 1rem;
             }
         }
+
     </style>
 
 </head>
