@@ -1,0 +1,361 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Fuukdle</title>
+    <style>
+        @font-face {
+            font-family: 'Kingsbridge';
+            src: url('kingsbridge.ttf') format('truetype');
+        }
+
+        body {
+            margin: 0;
+            font-family: sans-serif;
+            background-color: #121213;
+            color: white;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: start;
+            padding: 2rem;
+        }
+
+        h1 {
+            margin-bottom: 1rem;
+            font-family: 'Kingsbridge', sans-serif;
+            font-size: 3rem;
+        }
+
+        #game {
+            display: grid;
+            grid-template-rows: repeat(6, 1fr);
+            gap: 0.5rem;
+        }
+
+        .row {
+            display: flex;
+            gap: 0.5rem;
+        }
+
+        .tile {
+            width: 60px;
+            height: 60px;
+            border: 2px solid #3a3a3c;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 2rem;
+            text-transform: uppercase;
+            background-color: #121213;
+            color: white;
+        }
+
+        .correct {
+            background-color: #538d4e;
+            border-color: #538d4e;
+        }
+
+        .present {
+            background-color: #b59f3b;
+            border-color: #b59f3b;
+        }
+
+        .absent {
+            background-color: #3a3a3c;
+            border-color: #3a3a3c;
+        }
+
+        #keyboard {
+            margin-top: 2rem;
+            display: flex;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+
+        .keyboard-row {
+            display: flex;
+            justify-content: center;
+            gap: 0.5rem;
+        }
+
+        .key {
+            background-color: #818384;
+            color: white;
+            border: none;
+            padding: 1rem;
+            font-size: 1rem;
+            text-transform: uppercase;
+            cursor: pointer;
+            min-width: 43px;
+            text-align: center;
+        }
+
+            .key.correct {
+                background-color: #538d4e;
+            }
+
+            .key.present {
+                background-color: #b59f3b;
+            }
+
+            .key.absent {
+                background-color: #3a3a3c;
+            }
+
+
+            .key.special {
+                min-width: 65px;
+            }
+
+        #resultPopup button {
+            background-color: #538d4e;
+            color: white;
+            border: none;
+            padding: 0.75rem 1.25rem;
+            font-size: 1rem;
+            border-radius: 10px;
+            cursor: pointer;
+            margin: 0.5rem;
+            transition: background-color 0.2s ease;
+        }
+
+            #resultPopup button:hover {
+                background-color: #6aaa64;
+            }
+
+        #resultPopup {
+            opacity: 0;
+            transform: translate(-50%, -50%) scale(0.9);
+            transition: opacity 0.3s ease, transform 0.3s ease;
+        }
+
+            #resultPopup.show {
+                opacity: 1;
+                transform: translate(-50%, -50%) scale(1);
+            }
+
+
+    </style>
+
+</head>
+<body>
+    <h1>Fuukdle</h1>
+    <div id="game"></div>
+    <div id="keyboard"></div>
+    <div id="resultPopup" style="display:none; position:fixed; top:40%; left:50%; transform:translate(-50%, -50%); background:#222; color:white; padding:1rem; border-radius:10px; z-index:1000; text-align:center;">
+        <p id="resultText" style="white-space: pre-line;"></p>
+        <button onclick="copyResults()">Copy Results</button>
+        <br><br>
+        <button onclick="closePopup()">Close</button>
+    </div>
+
+    <script>
+        const correctWord = "FUUKA";
+        const maxGuesses = 6;
+        const guessedStatus = {};
+        let currentRow = 0;
+        let currentGuess = "";
+        let gameOver = false;
+
+        const gameEl = document.getElementById("game");
+        const keyboardEl = document.getElementById("keyboard");
+
+        // Create game rows
+        for (let i = 0; i < maxGuesses; i++) {
+            const row = document.createElement("div");
+            row.classList.add("row");
+            for (let j = 0; j < 5; j++) {
+                const tile = document.createElement("div");
+                tile.classList.add("tile");
+                row.appendChild(tile);
+            }
+            gameEl.appendChild(row);
+        }
+        function handleGuess(guess) {
+            const rowEl = gameEl.children[currentRow];
+            const tiles = rowEl.children;
+
+            // Step 1: Setup
+            const letterCounts = {};
+            for (let letter of correctWord) {
+                letterCounts[letter] = (letterCounts[letter] || 0) + 1;
+            }
+
+            const statuses = new Array(5).fill("absent");
+
+            // Step 2: First pass - mark greens
+            for (let i = 0; i < 5; i++) {
+                const letter = guess[i];
+                if (letter === correctWord[i]) {
+                    statuses[i] = "correct";
+                    letterCounts[letter]--; // consume one
+                }
+            }
+
+            // Step 3: Second pass - mark yellows (only if letter left)
+            for (let i = 0; i < 5; i++) {
+                const letter = guess[i];
+                if (statuses[i] === "correct") continue;
+                if (correctWord.includes(letter) && letterCounts[letter] > 0) {
+                    statuses[i] = "present";
+                    letterCounts[letter]--; // consume one
+                }
+            }
+
+            // Step 4: Apply colors and update keyboard
+            for (let i = 0; i < 5; i++) {
+                const letter = guess[i];
+                const tile = tiles[i];
+                tile.textContent = letter;
+                tile.classList.add(statuses[i]);
+
+                const currentStatus = guessedStatus[letter];
+                const newStatus = statuses[i];
+
+                if (
+                    !currentStatus ||
+                    newStatus === "correct" ||
+                    (newStatus === "present" && currentStatus !== "correct")
+                ) {
+                    guessedStatus[letter] = newStatus;
+                    updateKeyboardKeyColor(letter, newStatus);
+                }
+            }
+
+
+            if (guess === correctWord) {
+                const audio = new Audio("yay!.mp3");
+                audio.play();
+                setTimeout(() => {
+                    showResults();
+                    gameOver = true;
+                }, 200);
+
+            
+
+            } else if (currentRow === maxGuesses - 1) {
+                const audio = new Audio("uhm.mp3");
+                audio.play();
+                setTimeout(() => {
+                    showLoss();
+                    gameOver = true;
+                }, 200);
+
+
+            }
+
+
+
+            currentRow++;
+            currentGuess = "";
+        }
+
+
+        function updateKeyboardKeyColor(letter, status) {
+            const keyButtons = document.querySelectorAll(".key");
+            keyButtons.forEach(btn => {
+                if (btn.textContent === letter) {
+                    btn.classList.remove("correct", "present", "absent");
+                    btn.classList.add(status);
+                }
+            });
+        }
+
+
+        function addLetter(letter) {
+            if (gameOver || currentGuess.length >= 5) return;
+            currentGuess += letter;
+            const tile = gameEl.children[currentRow].children[currentGuess.length - 1];
+            tile.textContent = letter;
+        }
+
+
+        function deleteLetter() {
+            if (gameOver || currentGuess.length === 0) return;
+            const tile = gameEl.children[currentRow].children[currentGuess.length - 1];
+            tile.textContent = "";
+            currentGuess = currentGuess.slice(0, -1);
+        }
+
+
+        function submitGuess() {
+            if (gameOver || currentGuess.length !== 5) return;
+            handleGuess(currentGuess);
+        }
+
+
+        const layout = [
+            ["Q", "W", "E", "R", "T", "Y", "U", "I", "O", "P"],
+            ["A", "S", "D", "F", "G", "H", "J", "K", "L"],
+            ["ENTER", "Z", "X", "C", "V", "B", "N", "M", "BACK"]
+        ];
+
+        layout.forEach(row => {
+            const rowEl = document.createElement("div");
+            rowEl.className = "keyboard-row";
+            row.forEach(key => {
+                const btn = document.createElement("button");
+                btn.textContent = key === "BACK" ? "⌫" : key;
+                btn.className = "key" + (key === "ENTER" || key === "BACK" ? " special" : "");
+                btn.addEventListener("click", () => {
+                    if (key === "ENTER") submitGuess();
+                    else if (key === "BACK") deleteLetter();
+                    else addLetter(key);
+                });
+                rowEl.appendChild(btn);
+            });
+            keyboardEl.appendChild(rowEl);
+        });
+
+        document.addEventListener("keydown", e => {
+            const key = e.key.toUpperCase();
+            if (key === "ENTER") submitGuess();
+            else if (key === "BACKSPACE") deleteLetter();
+            else if (/^[A-Z]$/.test(key)) addLetter(key);
+        });
+
+        function showResults() {
+            let resultEmoji = "Great job! Copy to share with others!\n\n";
+            for (let i = 0; i <= currentRow; i++) {
+                const row = gameEl.children[i];
+                for (let j = 0; j < 5; j++) {
+                    const tile = row.children[j];
+                    if (tile.classList.contains("correct")) resultEmoji += "🟩";
+                    else if (tile.classList.contains("present")) resultEmoji += "🟨";
+                    else resultEmoji += "⬛";
+                }
+                resultEmoji += "\n";
+            }
+            const popup = document.getElementById("resultPopup");
+            document.getElementById("resultText").textContent = resultEmoji;
+            popup.style.display = "block";
+            setTimeout(() => popup.classList.add("show"), 10);
+        }
+
+        function showLoss() {
+            const popup = document.getElementById("resultPopup");
+            const lossMessage = "Better Luck Next Time!\n\nThe word was: FUUKA";
+            document.getElementById("resultText").textContent = lossMessage;
+            popup.style.display = "block";
+            setTimeout(() => popup.classList.add("show"), 10);
+        }
+
+
+
+        function copyResults() {
+            const text = document.getElementById("resultText").textContent;
+            navigator.clipboard.writeText(text).then(() => alert("Copied to clipboard!"));
+        }
+        function closePopup() {
+            const popup = document.getElementById("resultPopup");
+            popup.classList.remove("show");
+            setTimeout(() => popup.style.display = "none", 300);
+        }
+
+
+
+    </script>
+</body>
+</html>
